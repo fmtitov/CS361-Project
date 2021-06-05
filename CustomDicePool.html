@@ -3,23 +3,35 @@
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="utf-8" />
-    <title></title>
+    <title>Dice Roll Simulator</title>
     <style>
+		#Return {
+			background-color: plum;
+            font-family: 'Times New Roman', Times, serif;
+		}
+
 		#DelDie {
             visibility: hidden;
 		}
 
 		.header {
+			font-family: Morpheus;
 			z-index: 1;
 			position: relative;
 			background-color: gray;
-			padding-left: 50px;
+			padding-left: 100px;
 			margin-right: 50%;
-		}
+			margin-top: 0px;
+			margin-bottom: 5px;
+		}   
 
 		.logo {
 			z-index: 2;
 			position: absolute;
+		}
+
+		.Bonus {
+			visibility: hidden;
 		}
     </style>
 
@@ -27,32 +39,37 @@
 <body>
 
     <img src="Dice.jpg" class="logo" width="40" height="40">
-    <h1 class="header">RPG Dice Simulator</h1>
+    <h1 class="header">RPG Dice Roll Simulator</h1>
 
 
     <script>
         let counter = 1;
 
         document.addEventListener("DOMContentLoaded", function () {
+            document.getElementById("FlatBonus").value = "-1";
             if (sessionStorage.getItem("edit") == 1) {
-                pool = sessionStorage.getItem("customPool").split('|');
-                
-                if (pool[pool.length - 1].localeCompare('db')){
-					document.getElementById("PoolNickname").value = pool[0];
-					document.getElementById("Die1Name").value = pool[1];
-					document.getElementById("Die1Size").value = pool[2];
+                pool = sessionStorage.getItem("editPool").split('|');
 
-					let numDice = (pool.length - 1) / 2;
-					for (i = 1; i < numDice; i++) {
-						newDie();
-						document.getElementById("Die" + counter + "Name").value = pool[2 * i + 1];
-						document.getElementById("Die" + counter + "Size").value = pool[2 * i + 2];
-					}
-					sessionStorage.setItem("edit", 0);
+                document.getElementById("PoolNickname").value = pool[0];
+                document.getElementById("Die1Name").value = pool[1];
+                document.getElementById("Die1Size").value = pool[2];
+
+
+                let numDice = (pool.length - 2) / 2;
+                for (i = 1; i < numDice; i++) {
+
+                    newDie();
+                    document.getElementById("Die" + counter + "Name").value = pool[2 * i + 1];
+                    document.getElementById("Die" + counter + "Size").value = pool[2 * i + 2];
                 }
+                if (pool[pool.length - 1] != "-1") {
+                    toggleFlatBonus();
+                    document.getElementById("FlatBonus").value = pool[pool.length - 1];
+                }
+
             }
 
-		});
+        });
 
         function newDie() {
             counter++;
@@ -60,7 +77,7 @@
             var break2 = document.createElement("BR");
 
             var dieSet = document.createElement("FIELDSET");
-			dieSet.setAttribute("id", counter);
+            dieSet.setAttribute("id", counter);
 
             var legend = document.createElement("LEGEND");
             legend.textContent = "Die " + counter;
@@ -76,77 +93,114 @@
             label.textContent = "Die Nickname:";
 
             var labelSize = document.createElement("LABEL");
-            var dieSize = document.createElement("INPUT");
+            var dieSize = document.getElementById("Die1Size").cloneNode(true);
 
             let dieSizeName = "Die" + counter + "Size";
             dieSize.setAttribute("id", dieSizeName);
             dieSize.setAttribute("name", dieSizeName);
-            dieSize.setAttribute("type", "text");
+            //dieSize.setAttribute("type", "text");
             labelSize.setAttribute("for", dieSizeName);
             labelSize.textContent = "Number of sides(Ex:6 for a D6):";
 
 
             let form = document.getElementById("DieForm");
-            let button = document.getElementById("AddDie");
+            let before = document.getElementsByClassName("Bonus")[0];
 
-			dieSet.appendChild(legend);
+            dieSet.appendChild(legend);
             dieSet.appendChild(label);
-            dieSet.appendChild(die);    
+            dieSet.appendChild(die);
             dieSet.appendChild(break1);
             dieSet.appendChild(labelSize);
-			dieSet.appendChild(dieSize);
+            dieSet.appendChild(dieSize);
             dieSet.appendChild(break2);
 
-            form.insertBefore(dieSet, button);
+			form.insertBefore(dieSet, before);
             document.getElementById("DelDie").style.visibility = "visible";
+        }
+
+        function toggleFlatBonus() {
+            let flatBonus = document.getElementById("FlatBonus");
+            let label = document.getElementsByClassName("Bonus")[0];
+            if (flatBonus.value == "-1") {
+                label.style.visibility = "visible";
+                flatBonus.style.visibility = "visible";
+                document.getElementById("ToggleBonus").textContent = "Remove Flat Bonus";
+                document.getElementById("FlatBonus").value = "";
+            }
+            else {
+				label.style.visibility = "hidden";
+                flatBonus.style.visibility = "hidden";
+                document.getElementById("ToggleBonus").textContent = "Add Flat Bonus";
+				document.getElementById("FlatBonus").value = "-1";
+            }
+
         }
 
         function deleteDie() {
             document.getElementById(counter).remove();
             counter--;
             if (counter == 1) {
-				document.getElementById("DelDie").style.visibility = "hidden";
+                document.getElementById("DelDie").style.visibility = "hidden";
             }
         }
 
-        function simpleSubmit() {
-            let submitString = "";
-            submitString += document.getElementById("PoolNickname").value;
+
+        function savePool(savePool) {
+            if (checkFilledOut()) {
+                let num = localStorage.getItem("numSaved");
+                if (num == null || num < 10 || !savePool) {
+                    let submitString = "";
+                    submitString += document.getElementById("PoolNickname").value;
+                    for (i = 1; i <= counter; i++) {
+                        submitString += "|";
+                        submitString += document.getElementById("Die" + i + "Name").value;
+                        submitString += "|";
+                        submitString += document.getElementById("Die" + i + "Size").value;
+                    }
+                    submitString += "|" + document.getElementById("FlatBonus").value;
+                    sessionStorage.setItem("customPool", submitString);
+                    if (savePool) {
+
+                        let savedPoolNum = sessionStorage.getItem("savedPoolEditNum");
+						if (savedPoolNum == 0 || savedPoolNum == null) {
+                            if (num == null) { num = 1 }
+                            else { num++ };
+                            sessionStorage.setItem("savedPoolEditNum", num);
+							localStorage.setItem("numSaved", num);
+                        }
+                        else {
+                            num = savedPoolNum;
+                        }
+                        localStorage.setItem("savedPool" + num, submitString);
+                    }
+                    window.location.replace("Main_Page.html");
+                }
+                else { console.log("You have to remove a Saved Die First"); }
+            }
+            else {
+                alert("Fill out all fields before submission");
+            }
+
+        }
+
+        function checkFilledOut() {
+            if (document.getElementById("PoolNickname").value == "" || document.getElementById("PoolNickname").value == null ||
+				document.getElementById("FlatBonus").value == "" || document.getElementById("FlatBonus").value == null) {
+                return 0;
+            }
             for (i = 1; i <= counter; i++) {
-				submitString += "|";
-                submitString += document.getElementById("Die" + i + "Name").value;
-				submitString += "|";
-                submitString += document.getElementById("Die" + i + "Size").value;
+                if (document.getElementById("Die" + i + "Name").value == "" || document.getElementById("Die" + i + "Name").value == null
+                    || document.getElementById("Die" + i + "Size").value == "" || document.getElementById("Die" + i + "Size").value == null) {
+                    return 0;
+                }
             }
-            sessionStorage.setItem("customPool", submitString);
-            window.location.replace("Main_Page.html");
+            return 1;
         }
 
-		function savePool() {
-            let num = localStorage.getItem("numSaved");
-            if (num == null || num < 5) {
-				let submitString = "";
-				submitString += document.getElementById("PoolNickname").value;
-				for (i = 1; i <= counter; i++) {
-					submitString += "|";
-					submitString += document.getElementById("Die" + i + "Name").value;
-					submitString += "|";
-					submitString += document.getElementById("Die" + i + "Size").value;
-				}
-                sessionStorage.setItem("customPool", submitString);
-				if (num == null) { num = 1 }
-                else { num++ };
-				localStorage.setItem("numSaved", num);
-                localStorage.setItem("savedPool" + num, submitString);
-				window.location.replace("Main_Page.html");
-            }
-            else { console.log("You have to remove a Saved Die First"); }
-			
-        }
 
-            
     </script>
 
+    <button type="button" onclick="window.location.replace('Main_Page.html');" id="Return">Return to Main Page</button>
     <form id="DieForm" action="Main_Page.html">
         <label for="PoolNickname">Enter Nickname for Dice Pool:</label>
         <input type="text" id="PoolNickname" name="PoolNickname"><br>
@@ -155,13 +209,22 @@
             <label for="Die1Name">Die Nickname:</label>
             <input type="text" id="Die1Name" name="Die1Name"><br>
             <label for="Die1Size">Number of sides(Ex:6 for a D6):</label>
-            <input type="text" id="Die1Size" name="Die1Size"><br>
+            <select id="Die1Size" name="Die1Size">
+                <option value="4" selected>4</option>
+                <option value="6">6</option>
+                <option value="8">8</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="100">100</option>
+            </select>
         </fieldset>
+        <label for="FlatBonus" class="Bonus">Input Flat Bonus:</label>
+        <input type="text" id="FlatBonus" name="FlatBonus" class="Bonus"><br>
         <button type="button" onclick="newDie()" id="AddDie">Add Extra Die</button>
-        <button type="button" onclick="deleteDie()" id="DelDie">Delete Die</button>
-        <!--<button>Add Flat Bonus</button>--><br>
-        <button type="button" onclick="savePool()" id="SavePool">Save Dice Pool</button>
-        <button type="button" onclick="simpleSubmit()" id="SimpleSubmit">Use Without Saving</button>
+        <button type="button" onclick="toggleFlatBonus()" id="ToggleBonus">Add Flat Bonus</button>
+        <button type="button" onclick="deleteDie()" id="DelDie">Delete Die</button><br>
+        <button type="button" onclick="savePool(1)" id="SavePool">Save Dice Pool</button>
+        <button type="button" onclick="savePool(0)" id="SimpleSubmit">Use Without Saving</button>
 
 
     </form>
